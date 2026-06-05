@@ -1,16 +1,30 @@
 # Arabic Dialect Classification
 
-End-to-end ML/MLOps project for Arabic dialect identification.
+End-to-end ML/MLOps project for Arabic dialect classification.
 
-The project classifies short Arabic text snippets into one of five dialect classes and serves the trained model through a local FastAPI application.
+The project classifies short Arabic text snippets into one of five labels and serves the trained model through a local FastAPI application.
 
-## Problem
+```text
+raw dataset -> preprocessing -> baseline -> model training -> evaluation -> saved model -> FastAPI service -> feedback collection
+```
 
-Arabic dialects share the Arabic script and much of their vocabulary, but they differ in spelling habits, informal writing conventions, lexical markers, and regional expressions.
+## Problem statement
 
-A dialect classifier can help route Arabic user text to the correct downstream pipeline, for example localization, search, customer support, moderation, analytics, or dialect-aware NLP processing.
+Arabic dialects share the Arabic script and much of their vocabulary, but they differ in spelling habits, informal writing conventions, particles, lexical markers, and regional expressions.
 
-The project prioritizes a working, reproducible end-to-end pipeline over model complexity.
+The goal is to classify an Arabic text snippet into one of five dialect classes:
+
+| Label | Meaning |
+|---|---|
+| `EGY` | Egyptian Arabic |
+| `GLF` | Gulf Arabic |
+| `LAV` | Levantine Arabic |
+| `NOR` | North African Arabic |
+| `MSA` | Modern Standard Arabic |
+
+A lightweight dialect classifier can be useful as a routing component before downstream NLP systems such as localization, search, customer support, moderation, analytics, or dialect-aware text processing.
+
+This project prioritizes a reproducible end-to-end pipeline over model complexity.
 
 ## Dataset
 
@@ -24,30 +38,20 @@ from datasets import load_dataset
 ds = load_dataset("drelhaj/Arabic-Dialects", "full_text")
 ```
 
-The original columns are normalized into the project format:
+The original dataset columns are normalized into the project format:
 
 | Original column | Project column | Meaning |
 |---|---|---|
 | `sentence` | `text` | Arabic text snippet |
 | `dialect` | `label` | Dialect class |
 
-The model predicts five labels:
-
-| Label | Meaning |
-|---|---|
-| `EGY` | Egyptian Arabic |
-| `GLF` | Gulf Arabic |
-| `LAV` | Levantine Arabic |
-| `NOR` | North African Arabic |
-| `MSA` | Modern Standard Arabic |
-
 The `freq_lists` configuration is not used as the main training dataset. It is useful for linguistic analysis, but the supervised classifier needs sentence-level text examples from `full_text`.
 
-## Metric
+## Metric choice
 
-The primary metric is **F1-macro**.
+The primary metric is **macro-F1**.
 
-F1-macro is appropriate because this is a multi-class classification task and the classes are imbalanced. Accuracy alone can hide weak performance on smaller dialect classes. F1-macro gives equal importance to each dialect class.
+Macro-F1 is appropriate because this is a multi-class classification task and the classes are imbalanced. Accuracy alone can hide weak performance on smaller dialect classes. Macro-F1 gives equal weight to each dialect class.
 
 Additional reported metrics:
 
@@ -60,13 +64,13 @@ Additional reported metrics:
 
 ### Baseline
 
-The baseline is a simple regex/rule-based classifier using manually selected dialect marker words. If no marker is found, the baseline falls back to the majority class from the training data.
+The baseline is a regex/rule-based classifier using manually selected dialect marker words. If no dialect marker is found, the baseline falls back to the majority class from the training data.
 
 This baseline is intentionally simple. It gives a minimum comparison point and shows why a learned model is useful.
 
-### Main model
+### Final model
 
-The final production model is:
+The final served model is:
 
 ```text
 TF-IDF character n-grams + Logistic Regression
@@ -82,7 +86,7 @@ Character n-grams are useful because dialectal Arabic is often informal, noisy, 
 
 ### Hyperparameter tuning
 
-Optuna is used to tune selected hyperparameters:
+Optuna is used to tune selected hyperparameters on the validation set:
 
 - Logistic Regression regularization strength `C`
 - character n-gram range
@@ -90,31 +94,32 @@ Optuna is used to tune selected hyperparameters:
 - `min_df`
 - `class_weight`
 
-The optimization objective is validation F1-macro.
+The optimization objective is validation macro-F1.
 
 After tuning, the final model is trained on train plus validation data and evaluated once on the test set.
 
 ### Additional experiments
 
-The notebook includes additional modeling experiments:
+The notebooks include additional modeling experiments:
 
+- regex/rule baseline
 - Stanza / word-tokenization experiment
 - hybrid ML + regex override layer
 - threshold tuning for regex overrides
 - combined character + word TF-IDF features
 - optional LinearSVC comparison
 
-The hybrid regex layer was tested but rejected because it did not improve macro-F1. This showed that manual dialect markers were useful for interpretation but too brittle for hard prediction overrides.
+The hybrid regex layer was tested but rejected because it did not improve macro-F1. This showed that manual dialect markers can help with interpretation, but they are too brittle for hard prediction overrides.
 
-## Final metrics
+## Current results
 
 The current final model achieved approximately:
 
 | Metric | Value |
 |---|---:|
 | Accuracy | 0.76 |
-| F1-macro | 0.71 |
-| F1-weighted | 0.76 |
+| Macro-F1 | 0.71 |
+| Weighted F1 | 0.76 |
 
 The model performs especially well on Egyptian Arabic. The hardest classes to separate are Gulf, Levantine, and North African Arabic, which are often confused with each other in short text snippets.
 
@@ -130,8 +135,11 @@ arabic-dialect-classification/
 │       └── index.html
 ├── data/
 │   ├── raw/
+│   │   └── .gitkeep
 │   ├── processed/
+│   │   └── .gitkeep
 │   └── feedback/
+│       └── .gitkeep
 ├── models/
 │   └── reports/
 ├── notebooks/
@@ -143,19 +151,33 @@ arabic-dialect-classification/
 │   ├── train.py
 │   └── utils.py
 ├── config.yaml
-├── dvc.yaml
 ├── requirements.txt
 ├── README.md
 └── .gitignore
 ```
 
-## Setup from fresh clone
+Generated artifacts are not committed directly to Git:
+
+```text
+data/raw/*.csv
+data/processed/*.csv
+data/feedback/*.csv
+models/*.joblib
+models/reports/
+mlruns/
+mlartifacts/
+mlflow.db
+```
+
+These files can be regenerated locally. If DVC is configured, they can also be versioned through DVC.
+
+## Setup from a fresh clone
 
 Clone the repository:
 
 ```bash
-git clone YOUR_REPO_URL
-cd arabic-dialect-classification
+git clone https://github.com/akdenizler/arabic-dialect-classifier.git
+cd arabic-dialect-classifier
 ```
 
 Create and activate a virtual environment:
@@ -178,17 +200,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-## Reproduce the pipeline
-
-### Option 1: pull artifacts with DVC
-
-If DVC remote access is configured:
-
-```bash
-dvc pull
-```
-
-### Option 2: regenerate artifacts locally
+## Reproduce the pipeline locally
 
 Download and preprocess the dataset:
 
@@ -196,7 +208,7 @@ Download and preprocess the dataset:
 python -m src.preprocess
 ```
 
-Run the rule baseline:
+Run the regex/rule baseline:
 
 ```bash
 python -m src.regex_baseline
@@ -220,11 +232,11 @@ Training reports are saved to:
 models/reports/
 ```
 
-## MLflow
+## MLflow experiment tracking
 
 Training logs parameters, metrics, and artifacts to local MLflow.
 
-This project uses SQLite as the MLflow backend store:
+This project uses SQLite as the local MLflow backend store:
 
 ```text
 sqlite:///mlflow.db
@@ -248,29 +260,19 @@ Then open:
 http://127.0.0.1:5000
 ```
 
-Do not commit `mlruns/`, `mlartifacts/`, or `mlflow.db` to Git.
+Do not commit the following local MLflow files to Git:
 
-## DVC
-
-Initialize DVC if needed:
-
-```bash
-dvc init
+```text
+mlruns/
+mlartifacts/
+mlflow.db
 ```
 
-Run the full DVC pipeline:
+## DVC artifact versioning
 
-```bash
-dvc repro
-```
+The course project expects generated artifacts to be versioned with DVC and stored in a Google Drive remote. This repository keeps generated artifacts out of Git.
 
-Push artifacts to the configured Google Drive remote:
-
-```bash
-dvc push
-```
-
-The following files and folders are tracked by DVC, not Git:
+Recommended DVC-tracked artifacts:
 
 ```text
 data/raw/arabic_dialect_dataset.csv
@@ -281,7 +283,19 @@ models/arabic_dialect_model.joblib
 models/reports/
 ```
 
-The Google Drive DVC remote should be shared with the instructor.
+If DVC has been configured, the pipeline can be reproduced with:
+
+```bash
+dvc repro
+```
+
+Artifacts can be pulled from the configured remote with:
+
+```bash
+dvc pull
+```
+
+If Google Drive OAuth blocks `dvc push`, the local DVC pipeline can still be used with `dvc repro`, and the generated artifacts can be shared manually through the course Google Drive folder.
 
 ## FastAPI serving
 
@@ -291,7 +305,7 @@ Start the API:
 uvicorn app.main:app --reload
 ```
 
-If port 8000 is already in use, run:
+If port `8000` is already in use:
 
 ```bash
 uvicorn app.main:app --reload --port 8001
@@ -361,7 +375,7 @@ Endpoint:
 POST /feedback
 ```
 
-The model does not update itself live after every prediction. Instead, user corrections are saved as labeled feedback data and can be used in the next retraining cycle.
+The model does not update itself live after every prediction. Instead, user corrections are saved as labeled feedback data and can be used in a later retraining cycle.
 
 Example request:
 
@@ -387,15 +401,13 @@ Corrections are saved to:
 data/feedback/labeled_feedback.csv
 ```
 
-The next training run can append these examples to the training set.
+This is safer than live online learning because feedback can be reviewed, versioned, and evaluated before deployment.
 
-This is safer than live online learning because it keeps the model reproducible: feedback can be reviewed, versioned, and evaluated before deployment.
+## Notebook role
 
-## Notebook
+The notebooks are the exploratory and explanatory artifacts. They show the reasoning process behind the final model.
 
-The notebook is the explanatory artifact. It shows the reasoning process behind the final model.
-
-Expected notebook sections:
+Expected notebook coverage:
 
 1. Problem framing
 2. Dataset loading
@@ -403,7 +415,7 @@ Expected notebook sections:
 4. Text length analysis
 5. Example texts per dialect
 6. Preprocessing decisions
-7. Regex baseline
+7. Regex/rule baseline
 8. Stanza / word-tokenization experiment
 9. TF-IDF character n-gram Logistic Regression
 10. Optuna tuning summary
@@ -415,7 +427,14 @@ Expected notebook sections:
 16. Error analysis
 17. Production deployment and monitoring discussion
 
-The notebook is not the production pipeline. The reproducible code is in `src/preprocess.py`, `src/train.py`, and `app/main.py`.
+The notebooks are not the production pipeline. The reproducible code is in:
+
+```text
+src/preprocess.py
+src/regex_baseline.py
+src/train.py
+app/main.py
+```
 
 ## Feature importance
 
@@ -432,7 +451,7 @@ In production, this model could run as a lightweight API service.
 Possible flow:
 
 ```text
-User text -> FastAPI service -> dialect prediction -> dialect-specific downstream pipeline
+user text -> FastAPI service -> dialect prediction -> dialect-specific downstream pipeline
 ```
 
 The predicted dialect and class probabilities can be used to route text to dialect-specific moderation, localization, support, search, or analytics systems.
@@ -449,7 +468,7 @@ Online metrics to monitor:
 - prediction distribution by dialect
 - average model confidence
 - percentage of low-confidence predictions
-- human-reviewed accuracy or F1 if labels become available later
+- human-reviewed accuracy or macro-F1 if labels become available later
 
 Data drift signals:
 
@@ -470,7 +489,7 @@ The model may struggle with:
 - Arabizi
 - heavy spelling errors
 - dialects not represented in the training labels
-- ambiguous non-Egyptian examples, especially GLF/LAV/NOR
+- ambiguous non-Egyptian examples, especially `GLF`, `LAV`, and `NOR`
 
 ## Main commands
 
@@ -484,6 +503,6 @@ uvicorn app.main:app --reload
 
 ## Presentation summary
 
-The project starts with a weak rule baseline, then moves to a character n-gram TF-IDF Logistic Regression model. Optuna is used to tune the final model. Several improvement ideas were tested, including regex overrides and combined char+word features. The final model was selected because it gave the best balance of macro-F1, simplicity, interpretability, and ease of deployment.
+The project starts with a weak regex/rule baseline, then moves to a character n-gram TF-IDF Logistic Regression model. Optuna is used to tune the final model. Several improvement ideas were tested, including regex overrides and combined character plus word TF-IDF features. The final model was selected because it gave the best balance of macro-F1, simplicity, interpretability, and ease of deployment.
 
 The API demo shows the model running locally through FastAPI with typed Pydantic schemas and a simple local frontend.

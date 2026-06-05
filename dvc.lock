@@ -1,0 +1,67 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python -m src.preprocess
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: 1b2e1e478a02402b0b0c43c645d86372
+      size: 698
+    - path: src/preprocess.py
+      hash: md5
+      md5: cb7d9ff2c73690e7cff3293a01e28fad
+      size: 3555
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 377c86e98a33c348dfede0112d2b7e03
+      size: 355255
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 99c6efc9ff17fd788bd1ed5278a0de4b
+      size: 2703764
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 42bdd19cd0b6a444b691b511ffdf0312
+      size: 357921
+    - path: data/raw/arabic_dialect_dataset.csv
+      hash: md5
+      md5: e0b162a3fd432999096fb29c6e0f0e4b
+      size: 3416918
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: 1b2e1e478a02402b0b0c43c645d86372
+      size: 698
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 377c86e98a33c348dfede0112d2b7e03
+      size: 355255
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 99c6efc9ff17fd788bd1ed5278a0de4b
+      size: 2703764
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 42bdd19cd0b6a444b691b511ffdf0312
+      size: 357921
+    - path: src/preprocess.py
+      hash: md5
+      md5: cb7d9ff2c73690e7cff3293a01e28fad
+      size: 3555
+    - path: src/train.py
+      hash: md5
+      md5: e7ea4943d04966b76baa2b220e4b88d1
+      size: 6844
+    outs:
+    - path: models/arabic_dialect_model.joblib
+      hash: md5
+      md5: 1f79f52ebd9b5682288e92118b3e5fa3
+      size: 6309012
+    - path: models/reports
+      hash: md5
+      md5: 4ca71d9324c73e689cec27aea7e4c5dc.dir
+      size: 9487
+      nfiles: 3

@@ -21,3 +21,22 @@ mlartifacts/
 mlflow.db
 data/feedback/*.csv
 !data/feedback/.gitkeep
+
+# Emergency reproducibility backup: keep small project artifacts in GitHub
+!data/
+!data/raw/
+!data/raw/arabic_dialect_dataset.csv
+
+!data/processed/
+!data/processed/train.csv
+!data/processed/val.csv
+!data/processed/test.csv
+
+!models/
+!models/arabic_dialect_model.joblib
+!models/best_model.joblib
+!models/label_encoder.joblib
+
+!data/raw/*.dvc
+!data/processed/*.dvc
+!models/*.dvc

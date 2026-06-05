@@ -6,9 +6,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: "Playfair Display", Georgia, serif;
       max-width: 900px;
       margin: 40px auto;
       padding: 20px;
@@ -47,6 +48,7 @@
     }
 
     button {
+      font-family: "Playfair Display", Georgia, serif;
       margin-top: 12px;
       padding: 10px 18px;
       font-size: 16px;
@@ -61,9 +63,19 @@
     }
 
     .dialect {
-      font-size: 28px;
-      font-weight: bold;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: 42px;
+      font-weight: 600;
+      margin-top: 0;
       margin-bottom: 8px;
+      line-height: 1.1;
+    }
+
+    .prediction-title {
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 2px 0;
     }
 
     .confidence {
@@ -92,7 +104,7 @@
 
     .bar-fill {
       height: 100%;
-      background: #4b6cff;
+      background: linear-gradient(90deg, #ff1f1f 0%, #8b0000 100%);
       width: 0%;
     }
 
@@ -136,9 +148,9 @@
     <p class="small">Example inputs:</p>
     <button class="example-btn" onclick="setExample('انا عايز اعرف الاخبار النهارده')">Egyptian-like</button>
     <button class="example-btn" onclick="setExample('شو بدك تعمل هلق')">Levantine-like</button>
-    <button class="example-btn" onclick="setExample('شلونك وش اخبارك اليوم')">Gulf-like</button>
-    <button class="example-btn" onclick="setExample('واش راك لباس عليك')">North African-like</button>
-    <button class="example-btn" onclick="setExample('أعلنت الحكومة عن قرار جديد اليوم')">MSA-like</button>
+    <button class="example-btn" onclick="setExample('أنا وايد تعبان وأبي أنام')">Gulf-like</button>
+    <button class="example-btn" onclick="setExample('سلام، كيداير؟ شحال هادي ما شفتك! كيدايرة العائلة وكلشي مزيان؟')">North African-like</button>
+    <button class="example-btn" onclick="setExample('أعلنت الأمم المتحدة أن اتفاق وقف إطلاق النار، الذي وُقِّع بالأمس، سيدخل حيز التنفيذ فور وصول المساعدات الإنسانية إلى المنطقة')">MSA-like</button>
   </div>
 
   <div id="result" class="result" style="display: none;"></div>
@@ -201,14 +213,22 @@
         const sortedProbs = Object.entries(data.class_probabilities)
           .sort((a, b) => b[1] - a[1]);
 
+        const maxRank = Math.max(sortedProbs.length - 1, 1);
+
         let html = `
-          <h2>Prediction</h2>
+          <h2 class="prediction-title">Prediction</h2>
           <div class="dialect">${data.predicted_dialect}</div>
           <div class="confidence">Confidence: ${(data.probability * 100).toFixed(2)}%</div>
           <h3>Probability breakdown</h3>
         `;
 
-        for (const [label, probability] of sortedProbs) {
+        for (let index = 0; index < sortedProbs.length; index++) {
+          const [label, probability] = sortedProbs[index];
+          const colorRatio = index / maxRank;
+          const red = Math.round(255 - colorRatio * 116);
+          const green = Math.round(31 - colorRatio * 31);
+          const blue = Math.round(31 - colorRatio * 31);
+          const barColor = `rgb(${red}, ${green}, ${blue})`;
           const percent = (probability * 100).toFixed(2);
 
           html += `
@@ -218,7 +238,7 @@
                 <span>${percent}%</span>
               </div>
               <div class="bar-bg">
-                <div class="bar-fill" style="width: ${percent}%"></div>
+                <div class="bar-fill" style="width: ${percent}%; background: ${barColor};"></div>
               </div>
             </div>
           `;

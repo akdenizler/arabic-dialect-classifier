@@ -1,0 +1,24 @@
+stages:
+  preprocess:
+    cmd: python -m src.preprocess
+    deps:
+      - src/preprocess.py
+      - config.yaml
+    outs:
+      - data/raw/arabic_dialect_dataset.csv
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+
+  train:
+    cmd: python -m src.train
+    deps:
+      - src/train.py
+      - src/preprocess.py
+      - config.yaml
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+    outs:
+      - models/arabic_dialect_model.joblib
+      - models/reports
